@@ -1,3 +1,3 @@
-# Kitti rosbag creator for ROS2
+# Create rosbags of kitti data to replay in ROS2
 
-Create rosbags of the kitti dataset to replay in ROS2
+
