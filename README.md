@@ -44,19 +44,25 @@ Clone this repository
 git clone https://github.com/apresland/kitti-rosbag-utils
 ```
 
-Build and install the python module
+Build and install
 ```bash
 cd kitti-rosbag-utils
 python3 -m build
 python3 -m pip install
 ```
 
-Create a rosbag 
+## Create a rosbag 
+Create a rosbag from raw KITTI data using the following command
 ```bash
-python3 -m kitti_rosbag2 -t raw -b /data/kitti/raw -dt {datetime}  -dr {id}
+python3 -m kitti_rosbag_utils -t raw -b {basedir} -dt {datetime}  -dr {id}
 ```
-Replay the KITTI data
+## Replay the data
+Replay the data with the rosbag CLI (install it first)
 ```bash
 rosbag play kitti_raw_{datetime}_{id}.bag
+```
+View the data in RViz with the provided config
+```bash
+rviz -d kitti.rviz
 ```
 
