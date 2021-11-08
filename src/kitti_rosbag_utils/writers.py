@@ -1,15 +1,10 @@
 import sys
 import os
-import cv2
 import rospy
 import pykitti
 import tf
-import numpy as np
-import sensor_msgs.point_cloud2 as pcl2
-from std_msgs.msg import Header
 
-from sensor_msgs.msg import CameraInfo, PointField
-from cv_bridge import CvBridge
+from sensor_msgs.msg import CameraInfo
 from datetime import datetime
 from tf2_msgs.msg import TFMessage
 from geometry_msgs.msg import TransformStamped, Transform
@@ -17,6 +12,7 @@ from geometry_msgs.msg import TransformStamped, Transform
 from abc import ABC, abstractmethod
 
 from .data import Dataset, RawData, OdometryData
+from .messages import MonoImageMessages, PointCloudMessages
 from .transforms import StaticTransforms
 
 class BaseWriter(ABC):
@@ -25,29 +21,23 @@ class BaseWriter(ABC):
     def _write_mono(self, target_bag, camera):
 
         assert isinstance(self.data, Dataset), 'Data is not a <<Dataset>> instance!'
-        cv_bridge = CvBridge()
 
         camera_pad = '{0:02d}'.format(camera)
         dataset, image_path = self.data.dataset(camera)
+        messages = MonoImageMessages(image_path, camera_pad, self.data.calibration)
 
         for timestamp, filename in dataset:
-            image_filename = os.path.join(image_path, filename)
-            image_data = cv2.imread(image_filename, cv2.IMREAD_GRAYSCALE)
-            image_message = cv_bridge.cv2_to_imgmsg(image_data, encoding="mono8")
-            image_message.header.frame_id = 'image_' + camera_pad
-            image_message.header.stamp = timestamp           
 
-            self._info_message.height, self._info_message.width = image_data.shape[:2]
-            self._info_message.header.stamp = timestamp
-
+            image_message, info_message = messages.get(
+                filename, timestamp)
+                
             target_bag.write(
                 '/camera/' + camera_pad + '/image_rect',
                 image_message, t = image_message.header.stamp)
 
             target_bag.write(
                 '/camera/' + camera_pad + '/camera_info',
-                self._info_message, self._info_message.header.stamp) 
-
+                info_message, info_message.header.stamp) 
 
 
 class RawWriter(BaseWriter):
@@ -110,55 +100,24 @@ class RawWriter(BaseWriter):
             target_bag)
 
     def _write_mono(self, target_bag, camera):
-        camera_pad = '{0:02d}'.format(camera)
-        self._info_message = CameraInfo()
-        self._info_message.header.frame_id = 'image_' + camera_pad
-        self._info_message.width, self._info_message.height = tuple(self.data.calibration['S_rect_{}'.format(camera_pad)].tolist())
-        self._info_message.distortion_model = 'plumb_bob'
-        self._info_message.K = self.data.calibration['K_{}'.format(camera_pad)]
-        self._info_message.R = self.data.calibration['R_rect_{}'.format(camera_pad)]
-        self._info_message.D = self.data.calibration['D_{}'.format(camera_pad)]
-        self._info_message.P = self.data.calibration['P_rect_{}'.format(camera_pad)]
         super(
             RawWriter, self
             )._write_mono(target_bag, camera)
 
     def _write_velodyne(self, target_bag):
         print("Exporting velodyne data")
-        velo_path = os.path.join(self.data.path, 'velodyne_points')
-        velo_data_dir = os.path.join(velo_path, 'data')
-        filenames = sorted(os.listdir(velo_data_dir))
-        with open(os.path.join(velo_path, 'timestamps.txt')) as f:
-            lines = f.readlines()
-            velo_datetimes = []
-            for line in lines:
-                if len(line) == 1:
-                    continue
-                dt = datetime.strptime(line[:-4], '%Y-%m-%d %H:%M:%S.%f')
-                velo_datetimes.append(dt)
+        messages = PointCloudMessages()
 
-        for dt, filename in zip(velo_datetimes, filenames):
-            if dt is None:
+        for timestamp, filename in self.data.velodyne():
+            if timestamp is None:
                 continue
+            
+            pcl_msg = messages.get(
+                filename, timestamp)
 
-            velo_filename = os.path.join(velo_data_dir, filename)
-
-            # read binary data
-            scan = (np.fromfile(velo_filename, dtype=np.float32)).reshape(-1, 4)
-
-            # create header
-            header = Header()
-            header.frame_id = 'velo_link'
-            header.stamp = rospy.Time.from_sec(float(datetime.strftime(dt, "%s.%f")))
-
-            # fill pcl msg
-            fields = [PointField('x', 0,  PointField.FLOAT32, 1),
-                      PointField('y', 4,  PointField.FLOAT32, 1),
-                      PointField('z', 8,  PointField.FLOAT32, 1),
-                      PointField('i', 12, PointField.FLOAT32, 1)]
-            pcl_msg = pcl2.create_cloud(header, fields, scan)
-
-            target_bag.write('/velo/pointcloud', pcl_msg, t=pcl_msg.header.stamp)   
+            target_bag.write(
+                '/velo/pointcloud', 
+                pcl_msg, t=pcl_msg.header.stamp)   
 
 
 class OdometryWriter(BaseWriter):
@@ -182,24 +141,24 @@ class OdometryWriter(BaseWriter):
                 .format(self._data.sequence_path))
             sys.exit(1)
 
-        if len(kitti.timestamps) == 0:
+        elif len(kitti.timestamps) == 0:
             print('Dataset is empty? Exiting.')
             sys.exit(1)
 
-        if len(kitti.poses) == 0:
+        elif len(kitti.poses) == 0:
             print('Pose is empty? Exiting.')
             sys.exit(1)
 
-        self.data = OdometryData()
-        self.data.path = kitti.sequence_path
-        self.data.calibration = pykitti.utils.read_calib_file(
-            os.path.join(basedir,
-            'sequences', sequence, 'calib.txt'))
-        self.data.timestamps = kitti.timestamps
-        self.data.start = (
-            datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
-        self.data.poses = kitti.poses
-
+        else:
+            self.data = OdometryData()
+            self.data.path = kitti.sequence_path
+            self.data.calibration = pykitti.utils.read_calib_file(
+                os.path.join(basedir,
+                'sequences', sequence, 'calib.txt'))
+            self.data.timestamps = kitti.timestamps
+            self.data.start = (
+                datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
+            self.data.poses = kitti.poses
 
     def to_rosbag(self, target_bag):
         self._write_poses(
@@ -210,7 +169,6 @@ class OdometryWriter(BaseWriter):
         self._write_mono(
             target_bag, 
             camera=1)
-
 
     def _write_poses(self, target_bag):
         print("Exporting time dependent transformations")

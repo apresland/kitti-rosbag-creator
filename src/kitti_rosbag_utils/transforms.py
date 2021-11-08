@@ -3,7 +3,7 @@ import rospy
 import numpy as np
 
 from tf2_msgs.msg import TFMessage
-from geometry_msgs.msg import TransformStamped, Transform
+from geometry_msgs.msg import TransformStamped
 
 class StaticTransforms:
     
@@ -21,37 +21,23 @@ class StaticTransforms:
         T_base_link_to_imu = np.eye(4, 4)
         T_base_link_to_imu[0:3, 3] = [-2.71/2.0-0.05, 0.32, 0.93]
 
+        transforms = [
+            ('base_link', 'imu_link', T_base_link_to_imu),
+            ('imu_link', 'velo_link', self._invert(self.data.calib.T_velo_imu)),
+            ('imu_link', 'camera_0', self._invert(self.data.calib.T_cam0_imu)),
+            ('imu_link', 'camera_1', self._invert(self.data.calib.T_cam1_imu)),
+            ('imu_link', 'camera_2', self._invert(self.data.calib.T_cam2_imu)),
+            ('imu_link', 'camera_3', self._invert(self.data.calib.T_cam3_imu))
+        ]
+
         self._tf_msg = TFMessage()
 
-        tfs_msg = self._create_stamped_transform(
-            frame_from='base_link', frame_to='imu_link',
-            transform=T_base_link_to_imu)
-        self._tf_msg.transforms.append(tfs_msg)
-
-        tfs_msg = self._create_stamped_transform(
-            frame_from='imu_link', frame_to='velo_link',
-            transform=self._invert(self.data.calib.T_velo_imu))
-        self._tf_msg.transforms.append(tfs_msg)       
-
-        tfs_msg = self._create_stamped_transform(
-            frame_from='imu_link', frame_to='camera_0',
-            transform=self._invert(self.data.calib.T_cam0_imu))
-        self._tf_msg.transforms.append(tfs_msg)
-
-        tfs_msg = self._create_stamped_transform(
-            frame_from='imu_link', frame_to='camera_1', 
-            transform=self._invert(self.data.calib.T_cam1_imu))
-        self._tf_msg.transforms.append(tfs_msg)
-
-        tfs_msg = self._create_stamped_transform(
-            frame_from='imu_link', frame_to='camera_2',
-            transform=self._invert(self.data.calib.T_cam2_imu))
-        self._tf_msg.transforms.append(tfs_msg)
-
-        tfs_msg = self._create_stamped_transform(
-            frame_from='imu_link', frame_to='camera_3', 
-            transform=self._invert(self.data.calib.T_cam3_imu))
-        self._tf_msg.transforms.append(tfs_msg) 
+        for transform in transforms:
+            msg = self._create_stamped_transform(
+                frame_from=transform[0],
+                frame_to=transform[1],
+                transform=transform[2])
+            self._tf_msg.transforms.append(msg)
 
     def _create_stamped_transform(self, frame_from, frame_to, transform):
         t = transform[0:3, 3]

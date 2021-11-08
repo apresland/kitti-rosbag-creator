@@ -77,6 +77,24 @@ class RawData(Dataset):
             RawData, self)._zip(datetimes, filenames
             ), image_path
 
+    def velodyne(self):
+        velo_path = os.path.join(self.path, 'velodyne_points')
+        velo_data_dir = os.path.join(velo_path, 'data')
+        filenames = sorted(os.listdir(velo_data_dir))
+        
+        with open(os.path.join(velo_path, 'timestamps.txt')) as f:
+            lines = f.readlines()
+            velo_datetimes = []
+            for line in lines:
+                if len(line) == 1:
+                    continue
+                dt = datetime.strptime(line[:-4], '%Y-%m-%d %H:%M:%S.%f')      
+                velo_datetimes.append(dt)
+
+        velo_filenames = map(lambda x: os.path.join(velo_data_dir, x), filenames)
+
+        return zip(velo_datetimes, velo_filenames)
+
 
 class OdometryData(Dataset):
 
