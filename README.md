@@ -1,10 +1,14 @@
 
-# KITTI Benchmark to ROS bagfile conversion.
+# KITTI Benchmark to ROS bagfile.
 
 The [KITTI Vision Benchmark Suite](http://www.cvlibs.net/datasets/kitti/) is a popular autonomous driving dataset from Karlsruhe Institute of Technology and Toyota Technological Institute at Chicago. KITTI provides stereo, flow, scene flow, depth, odomerty, object, tracking, road, semantics and the raw data.
 
+
+## ROS bagfiles
 [ROS bags](http://wiki.ros.org/rosbag) are files that contain timestamped, serialized message data from ROS topics. Messages in ROS bags can be played back to aid development. In the automotive industry, ROS bag files are frequently used to capture drive data from test vehicles configured with cameras, LIDAR, GPS, and other input devices. The data for each device is stored as a topic in the ROS bag file and are played back based on their original timestamp and include the original payload. The messages from the ROS bags replace observations from the real world.
 
+
+## Why do I need this?
 Converting KITTI data to rosbags has a number of advantages. It has a compact file based format (rather than a directory structure) that can be persisted easily in a object store (e.g. S3) for sharing by multiple team members and once created integrates directly with ROS without need for bespoke code
 
 
