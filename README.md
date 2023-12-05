@@ -43,14 +43,72 @@ http://www.cvlibs.net/datasets/kitti/raw_data.php
 
 ## Install the module
 
+### Get The Code
+
 Clone this repository
 ```bash
 git clone https://github.com/apresland/kitti-rosbag-utils
 ```
 
-Build and install
+### Create a Virtual Environment (optional but recommended)
+
+Once the code has been downloaded or cloned to a folder, it is recommended (but not required) to create a Python virtual environment. If you decide not to, please skip to the 'Install Project Dependencies' section. 
+Otherwise, continue following the instructions in this section. 
+
+Open a terminal in the project folder and run this command (replacing `python3` with `python` as necessary for your installation):
+
+```
+python3 -m venv venv
+```
+
+#### Activating The Virtual Environment
+
+Next, you will need to activate the virtual environment. To activate the virtual environment on a UNIX style operating system (Linux, macOS, etc.), run this command:
+
+```
+source venv/bin/activate
+```
+
+To activate the virtual environment in Windows, run this command from the project folder root:
+
+```
+.\venv\Scripts\activate
+```
+
+You will need to have this virtual environment activated in order to run the code in this project. If your virtual environment ever becomes deactivated, you may run the above command (for your 
+applicable OS) again from the project folder root. 
+
+#### Deactivating The Virtual Environment
+
+When you're done playing with this program, you can deactivate the virtual environment.
+
+On Linux, run:
+
+```
+deactivate
+```
+
+On Windows, in the root project folder run:
+
+```
+.\venv\Scripts\deactivate
+```
+
+You can reactivate the virtual environment when you feel like using the program again by running the commands 
+mentioned above for your specific operating system. FYI, you only need to create the virtual environment once. 
+You can activate it and deactivate it as many times as you need to. 
+
+### Build and Install
+
+First, make sure the build python module is installed by running
+
 ```bash
-cd kitti-rosbag-utils
+python3 -m pip install build
+```
+
+Then, from inside the project folder root you can run
+
+```bash
 python3 -m build
 python3 -m pip install
 ```
@@ -69,4 +127,3 @@ View the data in RViz with the provided config
 ```bash
 rviz -d kitti.rviz
 ```
-
