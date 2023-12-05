@@ -52,8 +52,9 @@ git clone https://github.com/apresland/kitti-rosbag-utils
 
 ### Create a Virtual Environment (optional but recommended)
 
-Once the code has been downloaded or cloned to a folder, it is recommended (but not required) to create a Python virtual environment. If you decide not to, please skip to the 'Install Project Dependencies' section. 
-Otherwise, continue following the instructions in this section. 
+Once the code has been downloaded or cloned to a folder, it is recommended (but not required) to create a Python virtual environment. 
+Making a virtual environment will allow you to install the project in it's own environment instead of your computer's global environment.
+If you decide not to create a virtual environment, please skip to the 'Build and Install' section. Otherwise, continue following the instructions in this section. 
 
 Open a terminal in the project folder and run this command (replacing `python3` with `python` as necessary for your installation):
 
